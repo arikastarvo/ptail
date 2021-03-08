@@ -3,6 +3,7 @@
 Ad-hoc copy/paste ball of mud for tailing files with some extra features:  
 * glob can be used to specify files (search interval configurable)
 * state can be persisted to survive restarts (persist interval configurable)
+* can log what it's doing 
 
 **use it at your own risk!**
 
