@@ -22,6 +22,7 @@ import (
 	"errors"
 )
 
+
 /** logging **/
 type logWriter struct {
     writer io.Writer
@@ -99,8 +100,11 @@ func readerRoutine(fileName string, reader *tailReader) chan bool {
 								continue
 							}
 						}*/
-
-						fmt.Println(scanner.Text())
+                        // here we actually print out the lines..
+                        if sourceFile {
+                            fmt.Print(fileName + string('\t'))
+                        }
+                        fmt.Println(scanner.Text())
 					}
 			}
 		}
@@ -125,6 +129,7 @@ func (i *arrayFlags) Set(value string) error {
 }
 
 var fileGlobs arrayFlags
+var sourceFile bool
 
 /** helper things **/
 
@@ -183,10 +188,13 @@ func main() {
 	flag.Var(&fileGlobs, "file", "file (or glob) to tail (can be used multiple times)")
 	logToFile := flag.String("log", "", "enable logging. \"-\" for stdout, filename otherwise")
 	persist := flag.Int64("persist", 0, "interval in milliseconds for persisting state (default is 0 - disabled)")
+    sourceFileFlag := flag.Bool("sourcefile", false, "prefix source filename to every line (separated with tab)")
 	persistFile := flag.String("statefile", "state.json", "statefile to be used for persistence")
 	glob := flag.Int64("glob", 0, "interval in seconds for re-running glob search (default is 0 - disabled; only initially found files will be monitored)")
 	wait := flag.Bool("wait", true, "wait for files to appear, don't exit program if monitored (and actually existing) filecount is 0")
 	flag.Parse()
+
+    sourceFile = *sourceFileFlag
 
 	/**
 		set up logging
