@@ -20,6 +20,8 @@ Usage of ptail
         enable logging. "-" for stdout, filename otherwise
   -persist int
         interval in milliseconds for persisting state (default is 0 - disabled)
+  -sourcefile
+        prefix source filename to every line (separated with tab)
   -statefile string
         statefile to be used for persistence (default "state.json")
   -wait
