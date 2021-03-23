@@ -131,23 +131,6 @@ func (i *arrayFlags) Set(value string) error {
 var fileGlobs arrayFlags
 var sourceFile bool
 
-/** helper things **/
-
-/**
-	search globbed files
-**/
-func globber(input arrayFlags) []string {
-	files := make([]string, 0)
-	for _,file := range fileGlobs {
-		globbed,_ := filepath.Glob(file)
-		if len(globbed) > 0 {
-			files = append(files, globbed...)
-		} else {
-			files = append(files, file)
-		}
-	}
-	return files
-}
 
 func getreader(file string, persistState map[string]int64, forceStart bool, logger *log.Logger) (*tailReader, error) {
 	var reader tailReader
@@ -184,6 +167,8 @@ func getreader(file string, persistState map[string]int64, forceStart bool, logg
 	return &reader, nil
 }
 
+// from https://stackoverflow.com/questions/35809252/check-if-flag-was-provided-in-go
+// thanks to Markus Heukelom
 func isFlagPassed(name string) bool {
     found := false
     flag.Visit(func(f *flag.Flag) {
@@ -194,6 +179,81 @@ func isFlagPassed(name string) bool {
     return found
 }
 
+// start ** glob support
+// this little gadget is from https://github.com/yargevad/filepathx/blob/master/filepathx.go
+// thanks to Dave Gray
+
+// Globs represents one filepath glob, with its elements joined by "**".
+type Globs []string
+
+// Glob adds double-star support to the core path/filepath Glob function.
+// It's useful when your globs might have double-stars, but you're not sure.
+func Glob(pattern string) ([]string, error) {
+	if !strings.Contains(pattern, "**") {
+		// passthru to core package if no double-star
+		return filepath.Glob(pattern)
+	}
+	return Globs(strings.Split(pattern, "**")).Expand()
+}
+
+// Expand finds matches for the provided Globs.
+func (globs Globs) Expand() ([]string, error) {
+	var matches = []string{""} // accumulate here
+	for _, glob := range globs {
+		var hits []string
+		var hitMap = map[string]bool{}
+		for _, match := range matches {
+			paths, err := filepath.Glob(match + glob)
+			if err != nil {
+				return nil, err
+			}
+			for _, path := range paths {
+				err = filepath.Walk(path, func(path string, info os.FileInfo, err error) error {
+					if err != nil {
+						return err
+					}
+					// save deduped match from current iteration
+					if _, ok := hitMap[path]; !ok {
+						hits = append(hits, path)
+						hitMap[path] = true
+					}
+					return nil
+				})
+				if err != nil {
+					return nil, err
+				}
+			}
+		}
+		matches = hits
+	}
+
+	// fix up return value for nil input
+	if globs == nil && len(matches) > 0 && matches[0] == "" {
+		matches = matches[1:]
+	}
+
+	return matches, nil
+}
+// end ** glob support
+
+/** additional helper functions **/
+
+/**
+	search globbed files
+**/
+func globber(input arrayFlags) []string {
+	files := make([]string, 0)
+	for _,file := range fileGlobs {
+		globbed,_ := Glob(file)
+		//fmt.Println(file)
+		if len(globbed) > 0 {
+			files = append(files, globbed...)
+		} else {
+			files = append(files, file)
+		}
+	}
+	return files
+}
 func main() {
 	flag.Var(&fileGlobs, "file", "file (or glob) to tail (can be used multiple times)")
 	logToFile := flag.String("log", "", "enable logging. \"-\" for stdout, filename otherwise")
