@@ -190,7 +190,7 @@ func main() {
 	persist := flag.Int64("persist", 0, "interval in milliseconds for persisting state (default is 0 - disabled)")
     sourceFileFlag := flag.Bool("sourcefile", false, "prefix source filename to every line (separated with tab)")
 	persistFile := flag.String("statefile", "state.json", "statefile to be used for persistence")
-	glob := flag.Int64("glob", 0, "interval in seconds for re-running glob search (default is 0 - disabled; only initially found files will be monitored)")
+	glob := flag.Int64("glob", -1, "interval in seconds for re-running glob search (default is 0 - disabled; only initially found files will be monitored)")
 	wait := flag.Bool("wait", true, "wait for files to appear, don't exit program if monitored (and actually existing) filecount is 0")
 	flag.Parse()
 
@@ -249,6 +249,13 @@ func main() {
 		os.Exit(1)
 	}
 
+
+	for _,file := range fileGlobs {
+		if *glob < 0 && (strings.Contains(file, "*") || strings.Contains(file, "?") || strings.Contains(file, "[") || strings.Contains(file, "]")) {
+			*glob = 1
+			logger.Println("detected globbing pattern, overriding -glob value to 1; set 0 excplicitly to disable")
+		}
+	}
 	/**
 		read persistence data
 	**/
@@ -330,8 +337,8 @@ func main() {
 				}
 			}
 		}()
-	}
 
+	}
 
 	// start periodical persistence
 	if *persist > 0 {
