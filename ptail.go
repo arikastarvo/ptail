@@ -184,13 +184,23 @@ func getreader(file string, persistState map[string]int64, forceStart bool, logg
 	return &reader, nil
 }
 
+func isFlagPassed(name string) bool {
+    found := false
+    flag.Visit(func(f *flag.Flag) {
+        if f.Name == name {
+            found = true
+        }
+    })
+    return found
+}
+
 func main() {
 	flag.Var(&fileGlobs, "file", "file (or glob) to tail (can be used multiple times)")
 	logToFile := flag.String("log", "", "enable logging. \"-\" for stdout, filename otherwise")
 	persist := flag.Int64("persist", 0, "interval in milliseconds for persisting state (default is 0 - disabled)")
     sourceFileFlag := flag.Bool("sourcefile", false, "prefix source filename to every line (separated with tab)")
 	persistFile := flag.String("statefile", "state.json", "statefile to be used for persistence")
-	glob := flag.Int64("glob", -1, "interval in seconds for re-running glob search (default is 0 - disabled; only initially found files will be monitored)")
+	glob := flag.Int64("glob", 0, "interval in seconds for re-running glob search (default is 0 - disabled; only initially found files will be monitored)")
 	wait := flag.Bool("wait", true, "wait for files to appear, don't exit program if monitored (and actually existing) filecount is 0")
 	flag.Parse()
 
@@ -250,12 +260,18 @@ func main() {
 	}
 
 
+	globSet := false
 	for _,file := range fileGlobs {
-		if *glob < 0 && (strings.Contains(file, "*") || strings.Contains(file, "?") || strings.Contains(file, "[") || strings.Contains(file, "]")) {
-			*glob = 1
-			logger.Println("detected globbing pattern, overriding -glob value to 1; set 0 excplicitly to disable")
+		if strings.Contains(file, "*") || strings.Contains(file, "?") || strings.Contains(file, "[") || strings.Contains(file, "]") {
+			globSet = true
 		}
 	}
+	
+	if globSet && !isFlagPassed("glob") {
+		*glob = 1
+		logger.Println("detected globbing pattern, overriding -glob value to 1; set 0 excplicitly to disable")
+	}
+
 	/**
 		read persistence data
 	**/
@@ -278,6 +294,11 @@ func main() {
 	}
 
 	files := globber(fileGlobs)
+
+	if !isFlagPassed("sourcefile") && (len(files) > 1 || globSet) {
+		logger.Println("multiple files found or glob pattern detectd, auto-enabling source file output. explicitly set -sourcefile=false (with =) to disable")
+		sourceFile = true
+	}
 
 	readers := make(map[string]*tailReader)
 	channels := make(map[string]chan bool)
