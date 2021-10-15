@@ -102,7 +102,8 @@ func readerRoutine(fileName string, reader *tailReader) chan bool {
 						}*/
                         // here we actually print out the lines..
                         if sourceFile {
-                            fmt.Print(fileName + string('\t'))
+                            //fmt.Print(fileName + string('\t'))
+                            fmt.Print(fileName + sourceFileSeparator)
                         }
                         fmt.Println(scanner.Text())
 					}
@@ -130,6 +131,7 @@ func (i *arrayFlags) Set(value string) error {
 
 var fileGlobs arrayFlags
 var sourceFile bool
+var sourceFileSeparator string
 
 
 func getreader(file string, persistState map[string]int64, forceStart bool, logger *log.Logger) (*tailReader, error) {
@@ -258,13 +260,15 @@ func main() {
 	flag.Var(&fileGlobs, "file", "file (or glob) to tail (can be used multiple times)")
 	logToFile := flag.String("log", "", "enable logging. \"-\" for stdout, filename otherwise")
 	persist := flag.Int64("persist", 0, "interval in milliseconds for persisting state (default is 0 - disabled)")
-    sourceFileFlag := flag.Bool("sourcefile", false, "prefix source filename to every line (separated with tab)")
+    sourceFileFlag := flag.Bool("sourcefile", false, "prefix source filename to every line")
+    sourceFileSeparatorFlag := flag.String("sourcefile-separator", string('\t'), "separator that is used between sourcefile prefix and lines from file")
 	persistFile := flag.String("statefile", "state.json", "statefile to be used for persistence")
 	glob := flag.Int64("glob", 0, "interval in seconds for re-running glob search (default is 0 - disabled; only initially found files will be monitored). Will be auto-set to 1 if globbing detected.")
 	wait := flag.Bool("wait", true, "wait for files to appear, don't exit program if monitored (and actually existing) filecount is 0")
 	flag.Parse()
 
     sourceFile = *sourceFileFlag
+    sourceFileSeparator = *sourceFileSeparatorFlag
 
 	/**
 		set up logging
