@@ -258,7 +258,7 @@ func main() {
 	flag.Var(&fileGlobs, "file", "file (or glob) to tail (can be used multiple times)")
 	logToFile := flag.String("log", "", "enable logging. \"-\" for stdout, filename otherwise")
 	persist := flag.Int64("persist", 0, "interval in milliseconds for persisting state (default is 0 - disabled)")
-    sourceFileFlag := flag.Bool("sourcefile", false, "prefix source filename to every line (separated with tab). Will be auto-enabled if globbing or multiple files detected.")
+    sourceFileFlag := flag.Bool("sourcefile", false, "prefix source filename to every line (separated with tab)")
 	persistFile := flag.String("statefile", "state.json", "statefile to be used for persistence")
 	glob := flag.Int64("glob", 0, "interval in seconds for re-running glob search (default is 0 - disabled; only initially found files will be monitored). Will be auto-set to 1 if globbing detected.")
 	wait := flag.Bool("wait", true, "wait for files to appear, don't exit program if monitored (and actually existing) filecount is 0")
@@ -355,10 +355,10 @@ func main() {
 
 	files := globber(fileGlobs)
 
-	if !isFlagPassed("sourcefile") && (len(files) > 1 || globSet) {
+	/*if !isFlagPassed("sourcefile") && (len(files) > 1 || globSet) {
 		logger.Println("multiple files found or glob pattern detectd, auto-enabling source file output. explicitly set -sourcefile=false (with =) to disable")
 		sourceFile = true
-	}
+	}*/
 
 	readers := make(map[string]*tailReader)
 	channels := make(map[string]chan bool)
